@@ -10,6 +10,8 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.state.filesystem.FsStateBackend;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
@@ -22,6 +24,14 @@ public class CarSpeeds {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		env.getConfig().setGlobalJobParameters(params);
+		
+		env.enableCheckpointing(1000);
+		
+		env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
+		
+		env.getCheckpointConfig().setMaxConcurrentCheckpoints(1);
+		
+		env.setStateBackend(new FsStateBackend("/home/finaxys/Documents"));
 
 		DataStream<String> dataStream = StreamUtil.getDataStream(env, params);
 
