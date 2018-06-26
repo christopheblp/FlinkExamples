@@ -24,14 +24,14 @@ public class CarSpeeds {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		env.getConfig().setGlobalJobParameters(params);
-		
+
 		env.enableCheckpointing(1000);
-		
+
 		env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
-		
+
 		env.getCheckpointConfig().setMaxConcurrentCheckpoints(1);
-		
-		env.setStateBackend(new FsStateBackend("/home/finaxys/Documents"));
+
+		env.setStateBackend(new FsStateBackend("file:///home/finaxys/Documents"));
 
 		DataStream<String> dataStream = StreamUtil.getDataStream(env, params);
 
@@ -41,9 +41,8 @@ public class CarSpeeds {
 		}
 
 		DataStream<String> averageViewStream = dataStream.map((String row) -> Tuple2.of(1, Double.parseDouble(row)))
-				.keyBy(0)
-				.flatMap(new AverageSpeedListState());
-		
+				.keyBy(0).flatMap(new AverageSpeedValueState());
+
 		averageViewStream.print();
 
 		env.execute("Count Window");
@@ -99,16 +98,16 @@ public class CarSpeeds {
 				}
 
 				out.collect(String.format(
-						"Exceeded ! The average speed of the last %s car(s) was %s," + " your speed is %s",
-						count, sum / count, input.f1));
+						"Exceeded ! The average speed of the last %s car(s) was %s," + " your speed is %s", count,
+						sum / count, input.f1));
 				speedListState.clear();
 			} else {
 				out.collect("Thanks for staying under the speed limit !");
 			}
-			
+
 			speedListState.add(input.f1);
 		}
-		
+
 		public void open(Configuration config) {
 			ListStateDescriptor<Double> descriptor = new ListStateDescriptor<>("carAverageSpeed", Double.class);
 			speedListState = getRuntimeContext().getListState(descriptor);
